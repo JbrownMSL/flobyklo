@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /admin
+Disallow: /account
+Disallow: /cart
+Disallow: /checkout
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://weekendtoolrentals.com/sitemap.xml

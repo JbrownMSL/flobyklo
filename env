@@ -1,0 +1,107 @@
+#--------------------------------------------------------------------
+# Example Environment Configuration file
+#
+# This file can be used as a starting point for your own
+# custom .env files, and contains most of the possible settings
+# available in a default install.
+#
+# By default, all of the settings are commented out. If you want
+# to override the setting, you must un-comment it by removing the '#'
+# at the beginning of the line.
+#--------------------------------------------------------------------
+
+#--------------------------------------------------------------------
+# ENVIRONMENT
+#--------------------------------------------------------------------
+
+# CI_ENVIRONMENT = production
+
+#--------------------------------------------------------------------
+# APP
+#--------------------------------------------------------------------
+
+# app.baseURL = ''
+# If you have trouble with `.`, you could also use `_`.
+# app_baseURL = ''
+# app.forceGlobalSecureRequests = false
+# app.CSPEnabled = false
+
+#--------------------------------------------------------------------
+# DATABASE
+#--------------------------------------------------------------------
+
+# database.default.hostname = localhost
+# database.default.database = ci4
+# database.default.username = root
+# database.default.password = root
+# database.default.DBDriver = MySQLi
+# database.default.DBPrefix =
+# database.default.port = 3306
+
+# If you use MySQLi as tests, first update the values of Config\Database::$tests.
+# database.tests.hostname = localhost
+# database.tests.database = ci4_test
+# database.tests.username = root
+# database.tests.password = root
+# database.tests.DBDriver = MySQLi
+# database.tests.DBPrefix =
+# database.tests.charset = utf8mb4
+# database.tests.DBCollat = utf8mb4_general_ci
+# database.tests.port = 3306
+
+#--------------------------------------------------------------------
+# ENCRYPTION
+#--------------------------------------------------------------------
+
+# encryption.key =
+
+#--------------------------------------------------------------------
+# SESSION
+#--------------------------------------------------------------------
+
+# session.driver = 'CodeIgniter\Session\Handlers\FileHandler'
+# session.savePath = null
+
+#--------------------------------------------------------------------
+# LOGGER
+#--------------------------------------------------------------------
+
+# logger.threshold = 4
+
+#--------------------------------------------------------------------
+# WEEKEND TOOL RENTALS  (copy env -> .env and fill these on the host)
+#--------------------------------------------------------------------
+# CI_ENVIRONMENT = production
+# app.baseURL = 'https://weekendtoolrentals.com/'
+# app.forceGlobalSecureRequests = true
+# app.indexPage = ''
+
+# database.default.hostname = localhost
+# database.default.database = weekendtoolrentals
+# database.default.username = weekendtoolrentals
+# database.default.password =
+# database.default.DBDriver = MySQLi
+
+# encryption.key =
+
+# --- Square (decision #8: sandbox until Andrew provides prod keys) ---
+# wtr.square.env = sandbox
+# wtr.square.appId =
+# wtr.square.accessToken =
+# wtr.square.locationId =
+
+# --- Email dev-lockout (GuardedEmail): true = only send to wtr.devAllow list ---
+# wtr.devLockout = true
+# wtr.devAllow = jbrown@motorsportsland.com,abrown@motorsportsland.com
+
+# --- Business overrides (else Config/Wtr defaults apply) ---
+# wtr.businessPhone =
+# wtr.pickupAddress =
+
+# --- Outbound mail via Google Workspace SMTP relay (deploy host IP must be allowlisted) ---
+# email.protocol = smtp
+# email.SMTPHost = smtp-relay.gmail.com
+# email.SMTPPort = 587
+# email.SMTPCrypto = tls
+# email.fromEmail = andrew@weekendtoolrentals.com
+# email.fromName = 'Weekend Tool Rentals'   # quote values containing spaces!
