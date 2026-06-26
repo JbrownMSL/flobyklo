@@ -39,8 +39,28 @@ class Invoices extends BaseAdmin
     public function recordPayment(int $id)
     {
         if ($r = $this->guard()) { return $r; }
-        // TODO: record manual payment (or Square payment token)
-        return redirect()->back()->with('msg', 'Payment recorded.');
+        $db  = db_connect();
+        $inv = $db->table('invoices')->where('id', $id)->get()->getRowArray();
+        if (! $inv) { return redirect()->to('/admin/invoices')->with('error', 'Invoice not found.'); }
+        $amount = (float) $this->request->getPost('amount');
+        if ($amount <= 0) { return redirect()->back()->with('error', 'Enter a payment amount greater than 0.'); }
+        $method = $this->request->getPost('method') ?: 'cash';
+        $kind   = $this->request->getPost('kind') ?: 'balance';
+        $squareRef = null; $status = 'completed';
+        if ($method === 'square') {
+            $res = (new \App\Services\Square())->charge((string) $this->request->getPost('nonce'), $amount, 'fbk-inv-' . $id . '-' . time());
+            $status    = $res['status'] ?? 'simulated';
+            $squareRef = $res['id'] ?? ('SIM-' . time());
+        }
+        $db->table('payments')->insert([
+            'invoice_id' => $id, 'amount' => $amount, 'method' => $method, 'kind' => $kind,
+            'square_ref' => $squareRef, 'status' => $status, 'paid_at' => date('Y-m-d H:i:s'),
+        ]);
+        $paid = (float) ($db->table('payments')->selectSum('amount')->where('invoice_id', $id)->get()->getRow()->amount ?? 0);
+        $bal  = (float) $inv['total'] - $paid;
+        $newStatus = $bal <= 0.001 ? 'paid' : ($paid > 0 ? 'deposit_paid' : $inv['status']);
+        $db->table('invoices')->where('id', $id)->update(['amount_paid' => $paid, 'balance_due' => $bal, 'status' => $newStatus]);
+        return redirect()->to('/admin/invoices/' . $id)->with('msg', 'Payment of $' . number_format($amount, 2) . ' recorded.');
     }
 
     public function pdf(int $id)

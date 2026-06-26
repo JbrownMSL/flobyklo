@@ -4,6 +4,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf" content="<?= csrf_hash() ?>">
 <title><?= esc($title ?? 'FBK Admin') ?> — Flora by Klo</title>
+<link rel="icon" type="image/png" href="<?= base_url('flora-icon.png') ?>">
+<link rel="apple-touch-icon" href="<?= base_url('flora-icon.png') ?>">
 <style>
  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#1d2433;background:#0f172a;}
  a{color:#7c9a6f;text-decoration:none} a:hover{text-decoration:underline}

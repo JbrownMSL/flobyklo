@@ -217,7 +217,8 @@ class Quotes extends BaseAdmin
         $mpdf = new \Mpdf\Mpdf(['mode' => 'utf-8', 'format' => 'A4']);
         $mpdf->SetTitle('Quote #' . $id . ' — Flora by Klo');
         $mpdf->WriteHTML($html);
-        $mpdf->Output('quote-' . $id . '.pdf', \Mpdf\Output\Destination::INLINE);
+        $pdf = $mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN);
+        return $this->response->setHeader('Content-Type', 'application/pdf')->setHeader('Content-Disposition', 'inline; filename="quote-' . $id . '.pdf"')->setBody($pdf);
         exit;
     }
 
