@@ -4,16 +4,8 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
+/** WTR-specific model — removed. FBK contracts are handled directly in Admin\Contracts. */
 class ContractModel extends Model
 {
-    protected $table         = 'contracts';
-    protected $primaryKey    = 'id';
-    protected $returnType    = 'array';
-    protected $useTimestamps = false;
-    protected $allowedFields = ['version', 'title', 'body_html', 'effective_at', 'active'];
-
-    public function current(): ?array
-    {
-        return $this->where('active', 1)->orderBy('id', 'DESC')->first();
-    }
+    protected $table = 'contracts';
 }

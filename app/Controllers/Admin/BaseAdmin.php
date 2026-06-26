@@ -19,8 +19,8 @@ abstract class BaseAdmin extends BaseController
     public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger): void
     {
         parent::initController($request, $response, $logger);
-        helper('wtr');
-        if (! wtr_is_admin()) {
+        helper('fbk');
+        if (! fbk_is_admin()) {
             $this->denied = true;
         }
     }
@@ -28,7 +28,7 @@ abstract class BaseAdmin extends BaseController
     protected function guard(): ?ResponseInterface
     {
         if ($this->denied) {
-            return redirect()->to('/')->with('error', 'Admin access required.');
+            return redirect()->to('/login')->with('error', 'Admin access required.');
         }
         return null;
     }

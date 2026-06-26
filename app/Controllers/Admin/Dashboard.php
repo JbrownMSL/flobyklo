@@ -2,8 +2,6 @@
 
 namespace App\Controllers\Admin;
 
-use App\Models\ReservationModel;
-
 class Dashboard extends BaseAdmin
 {
     public function index()
@@ -11,23 +9,41 @@ class Dashboard extends BaseAdmin
         if ($r = $this->guard()) {
             return $r;
         }
-        $rm = new ReservationModel();
-        $db = db_connect();
+        $db  = db_connect();
+        $now = date('Y-m-d');
+        $mtd = date('Y-m-01');
 
-        $maintDue = $db->table('unit_blackouts')
-            ->where('reason', 'maintenance')->where('end_date >=', date('Y-m-d'))->countAllResults();
-        $openDamage = $db->table('damage_reports')->countAllResults();
+        $openLeads = (int) $db->table('clients')
+            ->where('status', 'lead')->countAllResults();
+
+        $upcomingEvents = (int) $db->table('events')
+            ->where('event_date >=', $now)
+            ->whereIn('status', ['tentative', 'confirmed'])
+            ->countAllResults();
+
+        $unpaidInvoices = (float) ($db->table('invoices')
+            ->selectSum('balance_due')
+            ->whereIn('status', ['sent', 'deposit_paid'])
+            ->get()->getRowArray()['balance_due'] ?? 0);
+
+        $mtdIncome = (float) ($db->table('payments')
+            ->selectSum('amount')
+            ->where('paid_at >=', $mtd)
+            ->where('status', 'completed')
+            ->get()->getRowArray()['amount'] ?? 0);
+
+        $mtdExpenses = (float) ($db->table('expenses')
+            ->selectSum('amount')
+            ->where('date >=', $mtd)
+            ->get()->getRowArray()['amount'] ?? 0);
 
         return view('admin/dashboard', [
-            'title'      => 'Admin Dashboard',
-            'upcoming'   => $rm->upcoming(),
-            'returnsDue' => $rm->returnsDue(),
-            'overdue'    => $rm->overdue(),
-            'maintDue'   => $maintDue,
-            'openDamage' => $openDamage,
-            'revenue30'  => (float) ($db->table('payments')
-                ->selectSum('amount')->where('type', 'rental')->where('status !=', 'failed')
-                ->where('created_at >=', date('Y-m-d', strtotime('-30 days')))->get()->getRowArray()['amount'] ?? 0),
+            'title'          => 'Dashboard',
+            'openLeads'      => $openLeads,
+            'upcomingEvents' => $upcomingEvents,
+            'unpaidInvoices' => $unpaidInvoices,
+            'mtdIncome'      => $mtdIncome,
+            'mtdExpenses'    => $mtdExpenses,
         ]);
     }
 }

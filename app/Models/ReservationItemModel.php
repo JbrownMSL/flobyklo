@@ -4,14 +4,8 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
+/** WTR-specific model — removed. Stub retained for autoloader safety. */
 class ReservationItemModel extends Model
 {
-    protected $table         = 'reservation_items';
-    protected $primaryKey    = 'id';
-    protected $returnType    = 'array';
-    protected $useTimestamps = false;
-    protected $allowedFields = [
-        'reservation_id', 'equipment_id', 'qty', 'days', 'rate_snapshot',
-        'line_subtotal', 'tax_class', 'tax_amount', 'is_trailer', 'auto_added',
-    ];
+    protected $table = 'reservation_items';
 }

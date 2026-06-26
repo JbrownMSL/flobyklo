@@ -3,27 +3,22 @@
 namespace App\Services;
 
 /**
- * Square payments (decision #8). Uses the Square REST Payments API via
- * CURLRequest so no SDK install is required. **Graceful**: when keys are not
- * configured (Config\Wtr::squareConfigured() === false) every call returns a
- * simulated success so the booking flow is fully testable without live keys —
- * payments are recorded with status='simulated' and must be reconciled before
- * go-live. Card data never touches our servers: the client tokenizes via the
- * Square Web Payments SDK and posts only a payment token (nonce).
- *
- * Deposit model: rental + reservation amounts are captured immediately; the
- * damage deposit is taken with autocomplete=false (an auth HOLD) and later
- * completed (capture) on damage or cancelled (release) on clean return.
+ * Square payments. Uses the Square REST Payments API via CURLRequest.
+ * **Graceful**: when keys are not configured (Config\Fbk::squareConfigured()
+ * returns false) every call returns a simulated success so the payment flow
+ * is fully testable without live keys — payments are recorded with
+ * status='simulated'. Card data never touches our servers: the client
+ * tokenizes via the Square Web Payments SDK and posts only a nonce.
  */
 class Square
 {
-    private \Config\Wtr $cfg;
+    private \Config\Fbk $cfg;
     private bool $live;
     private string $base;
 
     public function __construct()
     {
-        $this->cfg  = config('Wtr');
+        $this->cfg  = config('Fbk');
         $this->live = $this->cfg->squareConfigured();
         $this->base = $this->cfg->squareEnv === 'production'
             ? 'https://connect.squareup.com'
@@ -41,7 +36,7 @@ class Square
         return $this->createPayment($token, $amount, $idempotencyKey, true, $note);
     }
 
-    /** Authorization hold (delayed capture) for the damage deposit. */
+    /** Authorization hold (delayed capture) for a deposit. */
     public function hold(string $token, float $amount, string $idempotencyKey, string $note = ''): array
     {
         return $this->createPayment($token, $amount, $idempotencyKey, false, $note);
