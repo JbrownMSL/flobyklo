@@ -51,5 +51,5 @@ Integrations live in graceful/simulated mode until Kloe's Square keys + Plaid co
 - [x] Scaffold from WTR (2026-06-25)
 - [ ] Foundation: config/.env, DB, CreateFbkCore migration, auth seeder, fbk_helper
 - [ ] Deploy base to vader (DNS+cert+vhost) — login works
-- [ ] Modules P1 / P2 / P3
-- [ ] Plaid key wired
+- [x] ALL modules built + deployed + verified (14/14 routes 200): Clients, Recipes(stem-cost), Quotes, Invoices+Square(sim), Expenses, Events(cal+capacity), Reports(P&L), Bank/Plaid, Dashboard
+- [x] Plaid REAL wired (Jason prod key, link-token verified)
