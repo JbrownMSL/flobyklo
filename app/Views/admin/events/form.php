@@ -6,7 +6,7 @@
   <a href="<?= site_url('admin/events') ?>" class="btn ghost">&#8592; Back to Events</a>
 </div>
 
-<?php if ($capacityWarning): ?>
+<?php if (!empty($capacityWarning)): ?>
 <div class="flash err"><?= esc($capacityWarning) ?></div>
 <?php endif ?>
 
