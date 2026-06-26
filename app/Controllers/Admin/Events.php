@@ -8,12 +8,14 @@ class Events extends BaseAdmin
     {
         if ($r = $this->guard()) { return $r; }
         $db = db_connect();
-        $events = $db->table('events e')
+        $statuses = ['inquiry', 'booked', 'in_progress', 'completed', 'cancelled'];
+        $status = $this->request->getGet('status');
+        $b = $db->table('events e')
             ->select('e.*, c.name AS client_name')
-            ->join('clients c', 'c.id = e.client_id', 'left')
-            ->orderBy('e.event_date', 'ASC')
-            ->get()->getResultArray();
-        return view('admin/events/index', ['title' => 'Events', 'events' => $events]);
+            ->join('clients c', 'c.id = e.client_id', 'left');
+        if ($status) { $b->where('e.status', $status); }
+        $events = $b->orderBy('e.event_date', 'ASC')->get()->getResultArray();
+        return view('admin/events/index', ['title' => 'Events', 'events' => $events, 'status' => $status, 'statuses' => $statuses]);
     }
 
     public function form($id = null)
