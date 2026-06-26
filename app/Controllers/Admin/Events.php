@@ -23,10 +23,15 @@ class Events extends BaseAdmin
         if ($r = $this->guard()) { return $r; }
         $event   = $id ? db_connect()->table('events')->where('id', $id)->get()->getRowArray() : null;
         $clients = db_connect()->table('clients')->orderBy('name')->get()->getResultArray();
+        $statuses = ['inquiry', 'booked', 'in_progress', 'completed', 'cancelled'];
+        $eventDates = array_column(db_connect()->table('events')->select('event_date')->get()->getResultArray(), 'event_date');
         return view('admin/events/form', [
-            'title'   => $event ? 'Edit Event' : 'New Event',
-            'event'   => $event,
-            'clients' => $clients,
+            'title'      => $event ? 'Edit Event' : 'New Event',
+            'event'      => $event,
+            'clients'    => $clients,
+            'statuses'   => $statuses,
+            'eventDates' => $eventDates,
+            'capacityWarning' => null,
         ]);
     }
 
