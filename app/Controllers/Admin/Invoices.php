@@ -10,12 +10,13 @@ class Invoices extends BaseAdmin
     {
         if ($r = $this->guard()) { return $r; }
         $db = db_connect();
-        $invoices = $db->table('invoices i')
+        $status = $this->request->getGet('status');
+        $b = $db->table('invoices i')
             ->select('i.*, c.name AS client_name')
-            ->join('clients c', 'c.id = i.client_id', 'left')
-            ->orderBy('i.created_at', 'DESC')
-            ->get()->getResultArray();
-        return view('admin/invoices/index', ['title' => 'Invoices', 'invoices' => $invoices]);
+            ->join('clients c', 'c.id = i.client_id', 'left');
+        if ($status) { $b->where('i.status', $status); }
+        $invoices = $b->orderBy('i.created_at', 'DESC')->get()->getResultArray();
+        return view('admin/invoices/index', ['title' => 'Invoices', 'invoices' => $invoices, 'status' => $status]);
     }
 
     public function show(int $id)
