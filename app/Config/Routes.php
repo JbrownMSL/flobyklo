@@ -13,6 +13,9 @@ service('auth')->routes($routes);
 // ---------------------------------------------------------------------------
 $routes->get('/', 'Home::index');
 
+// Lead-intake endpoint — called by the WP website inquiry form (no auth)
+$routes->post('intake/lead', 'Intake::lead', ['as' => 'intake.lead']);
+
 // ---------------------------------------------------------------------------
 // Admin area — session-gated; group check in BaseAdmin::guard()
 // ---------------------------------------------------------------------------
