@@ -214,7 +214,7 @@ class Quotes extends BaseAdmin
         }
 
         $html = view('admin/quotes/pdf_template', ['quote' => $quote, 'items' => $items]);
-        $mpdf = new \Mpdf\Mpdf(['mode' => 'utf-8', 'format' => 'A4']);
+        $mpdf = new \Mpdf\Mpdf(['mode' => 'utf-8', 'format' => 'A4', 'tempDir' => WRITEPATH . 'cache/mpdf']);
         $mpdf->SetTitle('Quote #' . $id . ' — Flora by Klo');
         $mpdf->WriteHTML($html);
         $pdf = $mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN);
@@ -254,7 +254,7 @@ class Quotes extends BaseAdmin
         if (class_exists('\Mpdf\Mpdf')) {
             try {
                 $pdfHtml = view('admin/quotes/pdf_template', ['quote' => $quote, 'items' => $items]);
-                $mpdf    = new \Mpdf\Mpdf(['mode' => 'utf-8', 'format' => 'A4']);
+                $mpdf    = new \Mpdf\Mpdf(['mode' => 'utf-8', 'format' => 'A4', 'tempDir' => WRITEPATH . 'cache/mpdf']);
                 $mpdf->WriteHTML($pdfHtml);
                 $pdfPath = WRITEPATH . 'quote-' . $id . '-' . time() . '.pdf';
                 $mpdf->Output($pdfPath, \Mpdf\Output\Destination::FILE);
