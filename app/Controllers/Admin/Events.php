@@ -32,6 +32,7 @@ class Events extends BaseAdmin
             'statuses'   => $statuses,
             'eventDates' => $eventDates,
             'capacityWarning' => null,
+            'cap'        => (new \Config\Fbk())->capacityPerWeekend,
         ]);
     }
 
