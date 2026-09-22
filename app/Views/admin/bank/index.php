@@ -83,6 +83,12 @@
                 + Expense
               </button>
             </form>
+            <form method="post" action="<?= site_url('admin/bank/txn/' . (int) $t['id'] . '/income') ?>" style="display:inline;">
+              <?= csrf_field() ?>
+              <button type="submit" class="btn ghost" style="font-size:.78rem;padding:.2rem .55rem;">
+                + Income
+              </button>
+            </form>
           </td>
         </tr>
         <?php endforeach ?>

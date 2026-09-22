@@ -151,18 +151,15 @@ class Bank extends BaseAdmin
     {
         if ($r = $this->guard()) { return $r; }
 
-        $txnModel = new PlaidTransactionModel();
-        $txn      = $txnModel->find($txnId);
+        // #2946: this used to stash a 'plaid_prefill' flash that NOTHING read, and redirect to a
+        // bare /expenses/new — so the button always landed on an EMPTY form (Jason 2026-09-21).
+        // Expenses::form pre-fills from ?plaid_txn_id, so pass it.
+        return redirect()->to('/admin/expenses/new?plaid_txn_id=' . (int) $txnId);
+    }
 
-        if ($txn) {
-            session()->setFlashdata('plaid_prefill', [
-                'date'         => $txn['date'],
-                'amount'       => $txn['amount'],
-                'vendor'       => $txn['name'],
-                'plaid_txn_id' => $txn['id'],
-            ]);
-        }
-
-        return redirect()->to('/admin/expenses/new');
+    public function toIncome(int $txnId)
+    {
+        if ($r = $this->guard()) { return $r; }
+        return redirect()->to('/admin/income/new?plaid_txn_id=' . (int) $txnId);
     }
 }

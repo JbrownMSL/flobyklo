@@ -38,6 +38,7 @@
     <a href="<?= site_url('admin/events') ?>">Events</a>
     <a href="<?= site_url('admin/quotes') ?>">Quotes</a>
     <a href="<?= site_url('admin/invoices') ?>">Invoices</a>
+    <a href="<?= site_url('admin/income') ?>">Income</a>
     <a href="<?= site_url('admin/expenses') ?>">Expenses</a>
     <a href="<?= site_url('admin/bank') ?>">Bank</a>
     <a href="<?= site_url('admin/reports') ?>">Reports</a>

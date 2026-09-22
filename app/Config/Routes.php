@@ -77,6 +77,13 @@ $routes->group('admin', ['filter' => 'session', 'namespace' => 'App\Controllers\
     $routes->post('bank/exchange',       'Bank::exchange');
     $routes->post('bank/sync',           'Bank::sync');
     $routes->post('bank/txn/(:num)/expense', 'Bank::toExpense/$1');
+    $routes->post('bank/txn/(:num)/income',  'Bank::toIncome/$1');
+
+    // Income (#2946) — money in that is not an invoice payment
+    $routes->get('income',               'Income::index',        ['as' => 'admin.income']);
+    $routes->get('income/new',           'Income::form',         ['as' => 'admin.income.new']);
+    $routes->get('income/(:num)',        'Income::form/$1',      ['as' => 'admin.income.edit']);
+    $routes->post('income/save',         'Income::save',         ['as' => 'admin.income.save']);
 
     // Reports / P&L
     $routes->get('reports',              'Reports::index',       ['as' => 'admin.reports']);

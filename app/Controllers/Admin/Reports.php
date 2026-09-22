@@ -23,6 +23,12 @@ class Reports extends BaseAdmin
             [$ytd . ' 00:00:00', $now . ' 23:59:59']
         )->getRowArray()['n'] ?? 0);
 
+        // #2946: money in that is not an invoice payment (bank deposits, cash) lives in `income`.
+        $ytdIncome += (float) ($db->query(
+            "SELECT COALESCE(SUM(amount),0) AS n FROM income WHERE date >= ? AND date <= ?",
+            [$ytd, $now]
+        )->getRowArray()['n'] ?? 0);
+
         $ytdExpenses = (float) ($db->query(
             "SELECT COALESCE(SUM(amount),0) AS n FROM expenses WHERE date >= ? AND date <= ?",
             [$ytd, $now]
@@ -60,13 +66,20 @@ class Reports extends BaseAdmin
         $to   = $this->request->getGet('to')   ?: date('Y-m-d');
         $db   = db_connect();
 
+        // #2946: income = completed invoice payments PLUS the `income` table (deposits/cash).
         $incomeRows = $db->query(
-            "SELECT DATE_FORMAT(paid_at,'%Y-%m') AS month, SUM(amount) AS income
-               FROM payments
-              WHERE status = 'completed'
-                AND paid_at >= ? AND paid_at <= ?
-              GROUP BY month ORDER BY month",
-            [$from . ' 00:00:00', $to . ' 23:59:59']
+            "SELECT month, SUM(income) AS income FROM (
+                SELECT DATE_FORMAT(paid_at,'%Y-%m') AS month, SUM(amount) AS income
+                  FROM payments
+                 WHERE status = 'completed' AND paid_at >= ? AND paid_at <= ?
+                 GROUP BY month
+                UNION ALL
+                SELECT DATE_FORMAT(date,'%Y-%m') AS month, SUM(amount) AS income
+                  FROM income
+                 WHERE date >= ? AND date <= ?
+                 GROUP BY month
+             ) u GROUP BY month ORDER BY month",
+            [$from . ' 00:00:00', $to . ' 23:59:59', $from, $to]
         )->getResultArray();
 
         $expenseRows = $db->query(
