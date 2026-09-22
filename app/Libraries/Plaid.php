@@ -48,15 +48,24 @@ class Plaid
         ]);
     }
 
-    public function getTransactions(string $accessToken, string $startDate, string $endDate): array
+    /**
+     * #2944: MACU's Plaid Link grants every account on the online-banking login (Kaden's personal
+     * 0507 accounts ride along with Flora's 9333 ones, and Link offers no account-select), so the
+     * caller MUST pass the enabled account_ids. Bank::sync() also re-checks each row server-side.
+     */
+    public function getTransactions(string $accessToken, string $startDate, string $endDate, array $accountIds = []): array
     {
+        $options = ['count' => 500];
+        if ($accountIds !== []) {
+            $options['account_ids'] = array_values($accountIds);
+        }
         return $this->makeRequest('/transactions/get', [
             'client_id'    => $this->clientId,
             'secret'       => $this->secret,
             'access_token' => $accessToken,
             'start_date'   => $startDate,
             'end_date'     => $endDate,
-            'options'      => ['count' => 500],
+            'options'      => $options,
         ]);
     }
 

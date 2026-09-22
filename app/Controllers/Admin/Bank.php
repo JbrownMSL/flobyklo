@@ -68,8 +68,29 @@ class Bank extends BaseAdmin
                 return $this->response->setStatusCode(500)->setJSON(['error' => 'Token exchange failed']);
             }
 
+            // #2944: never take accounts[0] — that is how Kaden's personal money market became the
+            // business account. Record EVERY account the item grants; enabled is inherited BY MASK
+            // (Plaid mints new account_ids on every re-link, so an id-keyed rule would silently stop
+            // matching), and a mask never seen before starts DISABLED.
             $accountsResp = $plaid->getAccounts($exchange['access_token']);
-            $firstAccount = $accountsResp['accounts'][0] ?? [];
+            $accounts     = $accountsResp['accounts'] ?? [];
+            $db           = db_connect();
+            $enabledFor   = function (?string $mask) use ($db): int {
+                if ($mask === null || $mask === '') {
+                    return 0;
+                }
+                $prev = $db->table('plaid_accounts')->select('enabled')->where('mask', $mask)
+                    ->orderBy('id', 'DESC')->limit(1)->get()->getRowArray();
+                return (int) ($prev['enabled'] ?? 0);
+            };
+            $display = null;
+            foreach ($accounts as $a) {
+                $a['_enabled'] = $enabledFor($a['mask'] ?? null);
+                if ($display === null && $a['_enabled'] && ($a['subtype'] ?? '') === 'checking') {
+                    $display = $a;
+                }
+            }
+            $display ??= $accounts[0] ?? [];
 
             $connModel = new PlaidConnectionModel();
             $existing  = $connModel->where('item_id', $exchange['item_id'])->first();
@@ -77,16 +98,42 @@ class Bank extends BaseAdmin
             $row = [
                 'item_id'      => $exchange['item_id'],
                 'access_token' => $exchange['access_token'],
-                'account_id'   => $firstAccount['account_id'] ?? '',
-                'name'         => $firstAccount['name'] ?? 'Unknown Bank',
-                'mask'         => $firstAccount['mask'] ?? null,
+                'account_id'   => $display['account_id'] ?? '',
+                'name'         => $display['name'] ?? 'Unknown Bank',
+                'mask'         => $display['mask'] ?? null,
                 'created_at'   => date('Y-m-d H:i:s'),
             ];
 
             if ($existing) {
                 $connModel->update($existing['id'], $row);
+                $connId = (int) $existing['id'];
             } else {
                 $connModel->insert($row);
+                $connId = (int) $connModel->getInsertID();
+            }
+
+            $now = date('Y-m-d H:i:s');
+            foreach ($accounts as $a) {
+                $acct = [
+                    'name'          => $a['name'] ?? null,
+                    'official_name' => $a['official_name'] ?? null,
+                    'mask'          => $a['mask'] ?? null,
+                    'type'          => $a['type'] ?? null,
+                    'subtype'       => $a['subtype'] ?? null,
+                    'updated_at'    => $now,
+                ];
+                $have = $db->table('plaid_accounts')->where('plaid_connection_id', $connId)
+                    ->where('account_id', $a['account_id'])->get()->getRowArray();
+                if ($have) {
+                    $db->table('plaid_accounts')->where('id', $have['id'])->update($acct);
+                } else {
+                    $db->table('plaid_accounts')->insert($acct + [
+                        'plaid_connection_id' => $connId,
+                        'account_id'          => $a['account_id'],
+                        'enabled'             => $enabledFor($a['mask'] ?? null),
+                        'created_at'          => $now,
+                    ]);
+                }
             }
 
             return $this->response->setJSON(['success' => true, 'institution' => $row['name']]);
@@ -113,16 +160,31 @@ class Bank extends BaseAdmin
             $startDate = date('Y-m-d', strtotime('-30 days'));
             $endDate   = date('Y-m-d');
             $newCount  = 0;
+            $skipped   = 0;
 
             foreach ($connections as $conn) {
+                // #2944: only ENABLED accounts sync. An empty set means sync NOTHING for this
+                // connection, never "everything" — and every returned row is re-checked below, so a
+                // dropped API option cannot let a personal (0507) row land.
+                $enabled = array_column($db->table('plaid_accounts')->select('account_id')
+                    ->where('plaid_connection_id', $conn['id'])->where('enabled', 1)
+                    ->get()->getResultArray(), 'account_id');
+                if ($enabled === []) {
+                    continue;
+                }
                 try {
-                    $resp = $plaid->getTransactions($conn['access_token'], $startDate, $endDate);
+                    $resp = $plaid->getTransactions($conn['access_token'], $startDate, $endDate, $enabled);
                     foreach ($resp['transactions'] ?? [] as $txn) {
+                        if (! in_array($txn['account_id'] ?? '', $enabled, true)) {
+                            $skipped++;
+                            continue;
+                        }
                         $category = $txn['personal_finance_category']['detailed']
                             ?? ($txn['category'][0] ?? null);
 
                         $db->table('plaid_transactions')->ignore(true)->insert([
                             'plaid_connection_id' => $conn['id'],
+                            'account_id'          => $txn['account_id'],
                             'txn_id'              => $txn['transaction_id'],
                             'date'                => $txn['date'],
                             'amount'              => $txn['amount'],
@@ -140,7 +202,7 @@ class Bank extends BaseAdmin
                 }
             }
 
-            return $this->response->setJSON(['success' => true, 'synced' => $newCount]);
+            return $this->response->setJSON(['success' => true, 'synced' => $newCount, 'skipped_not_enabled' => $skipped]);
         } catch (\Throwable $e) {
             log_message('error', 'Plaid sync: ' . $e->getMessage());
             return $this->response->setStatusCode(500)->setJSON(['error' => $e->getMessage()]);
