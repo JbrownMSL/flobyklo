@@ -22,6 +22,18 @@ class ReceiptStore
     /** 12 MB — comfortably above an iPhone photo, below anything that will OOM GD. */
     public const MAX_BYTES = 12 * 1024 * 1024;
 
+    /**
+     * HEIC is converted to JPEG on the way in (D1635, Jason 2026-09-21: "install what
+     * you need it will be iphone photos").
+     *
+     * It has to be this wrapper and not heif-convert/ImageMagick: AlmaLinux 10's
+     * libheif ships with NO HEVC decoder — `heif-convert --list-decoders` prints an
+     * EMPTY "HEIC decoders:" section — so installing libheif-tools does not make an
+     * iPhone photo readable. /usr/local/bin/heic2jpeg wraps a pillow-heif venv, which
+     * bundles its own codecs. It lives in bin_t so php-fpm may exec it.
+     */
+    public const HEIC_CONVERTER = '/usr/local/bin/heic2jpeg';
+
     /** magic-byte signature => [mime, extension, GD can render it?] */
     private const TYPES = [
         'jpeg' => ['image/jpeg', 'jpg',  true],
@@ -93,19 +105,58 @@ class ReceiptStore
             return 'Could not create the receipt folder on the server.';
         }
 
-        $stored = $sub . $expenseId . '-' . bin2hex(random_bytes(8)) . '.' . $ext;
-        if (! @copy($tmp, $this->baseDir() . $stored)) {
+        $base    = $sub . $expenseId . '-' . bin2hex(random_bytes(8));
+        $stored  = $base . '.' . $ext;
+        $target  = $this->baseDir() . $stored;
+        $convErr   = null;
+        $converted = false;
+
+        if ($ext === 'heic') {
+            // Convert to JPEG so the list can show a thumbnail. If the converter is
+            // missing or fails, fall through and keep the HEIC as-is with
+            // previewable=0 — losing the preview is acceptable, losing the receipt
+            // she just photographed is not.
+            $jpegStored = $base . '.jpg';
+            $jpegTarget = $this->baseDir() . $jpegStored;
+
+            if (is_executable(self::HEIC_CONVERTER)) {
+                $cmd = escapeshellcmd(self::HEIC_CONVERTER)
+                     . ' ' . escapeshellarg($tmp) . ' ' . escapeshellarg($jpegTarget) . ' 3000 2>&1';
+                exec($cmd, $out, $rc);
+                if ($rc === 0 && is_file($jpegTarget) && filesize($jpegTarget) > 0) {
+                    $stored      = $jpegStored;
+                    $target      = $jpegTarget;
+                    $mime        = 'image/jpeg';
+                    $previewable = true;
+                    $converted   = true;
+                } else {
+                    $convErr = trim(implode(' ', (array) $out));
+                    if (is_file($jpegTarget)) { @unlink($jpegTarget); }
+                }
+            } else {
+                $convErr = self::HEIC_CONVERTER . ' is not executable';
+            }
+
+            if ($convErr !== null) {
+                log_message('error', 'ReceiptStore: HEIC conversion failed, storing original — ' . $convErr);
+            }
+        }
+
+        // Nothing to copy when the converter already wrote the JPEG to $target.
+        if (! $converted && ! @copy($tmp, $target)) {
             return 'Could not save the photo on the server.';
         }
-        @chmod($this->baseDir() . $stored, 0660);
+        @chmod($target, 0660);
 
         return [
             'expense_id'    => $expenseId,
             'stored_name'   => $stored,
             'original_name' => mb_substr((string) $file->getClientName(), 0, 255),
             'mime'          => $mime,
-            'bytes'         => (int) $file->getSize(),
-            'sha256'        => hash_file('sha256', $this->baseDir() . $stored) ?: null,
+            // the size of what we actually hold — a converted HEIC is smaller than
+            // the upload, so getSize() would misreport the stored file
+            'bytes'         => (int) (filesize($target) ?: $file->getSize()),
+            'sha256'        => hash_file('sha256', $target) ?: null,
             'previewable'   => $previewable ? 1 : 0,
             'created_at'    => date('Y-m-d H:i:s'),
         ];
