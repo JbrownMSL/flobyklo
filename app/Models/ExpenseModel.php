@@ -22,13 +22,22 @@ class ExpenseModel extends Model
     protected $validationRules = [
         'date'     => 'required|valid_date[Y-m-d]',
         'amount'   => 'required|decimal|greater_than[0]',
-        'category' => 'required|in_list[flowers,supplies,fuel,rent,labor,marketing,other]',
+        'category' => 'required|in_list[flowers,supplies,fuel,rent,labor,marketing,other,owner_draw]',
     ];
+
+    /**
+     * #2950 (Jason 2026-09-21): an OWNER DISTRIBUTION is not a business cost — it must never reach
+     * the P&L. It is stored in `expenses` (category owner_draw) and every AGGREGATE reads the view
+     * `expenses_pnl` (= expenses minus these categories), so a new report is correct by default.
+     * ⚠️ Any new sum over expenses must read expenses_pnl, not expenses. Writes stay on `expenses`.
+     */
+    public const NON_PNL_CATEGORIES = ['owner_draw'];
 
     /** Totals by category for a given month (YYYY-MM). */
     public function monthlyByCategory(string $month): array
     {
         return $this->select('category, SUM(amount) AS total')
+            ->whereNotIn('category', self::NON_PNL_CATEGORIES)
             ->where('date >=', $month . '-01')
             ->where('date <=', $month . '-31')
             ->groupBy('category')

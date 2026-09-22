@@ -7,7 +7,7 @@ use App\Models\ExpenseModel;
 
 class Expenses extends BaseAdmin
 {
-    private const CATEGORIES = ['flowers', 'supplies', 'fuel', 'rent', 'labor', 'marketing', 'other'];
+    private const CATEGORIES = ['flowers', 'supplies', 'fuel', 'rent', 'labor', 'marketing', 'other', 'owner_draw'];
 
     public function index()
     {
@@ -34,7 +34,7 @@ class Expenses extends BaseAdmin
         // #2948 — the missing-receipt worklist. Fuel never needs one, and a waived row
         // has been dismissed on purpose, so neither counts as missing.
         if ($rcpt === 'missing') {
-            $builder->where('e.category !=', 'fuel')
+            $builder->whereNotIn('e.category', ['fuel', 'owner_draw'])   // no receipt for fuel or a draw to herself
                     ->where('e.receipt_waived', 0)
                     ->where('(SELECT COUNT(*) FROM expense_receipts r3 WHERE r3.expense_id = e.id) = 0', null, false);
         } elseif ($rcpt === 'attached') {
@@ -63,7 +63,7 @@ class Expenses extends BaseAdmin
     private function missingReceiptCount(): int
     {
         return (int) db_connect()->table('expenses e')
-            ->where('e.category !=', 'fuel')
+            ->whereNotIn('e.category', ['fuel', 'owner_draw'])   // no receipt for fuel or a draw to herself
             ->where('e.receipt_waived', 0)
             ->where('(SELECT COUNT(*) FROM expense_receipts r WHERE r.expense_id = e.id) = 0', null, false)
             ->countAllResults();

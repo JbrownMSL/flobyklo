@@ -14,7 +14,8 @@
 $expId    = (int) ($expense['id'] ?? 0);
 $cat      = old('category', $expense['category'] ?? 'other');
 $waived   = ! empty($expense['receipt_waived']);
-$needs    = $cat !== 'fuel' && ! $receipts && ! $waived;
+$noRcpt   = in_array($cat, ['fuel', 'owner_draw'], true);   // #2950: a draw to herself needs no receipt
+$needs    = ! $noRcpt && ! $receipts && ! $waived;
 ?>
 
 <?php if ($expId && $needs): ?>
@@ -53,9 +54,10 @@ $needs    = $cat !== 'fuel' && ! $receipts && ! $waived;
         <?php foreach (['flowers','supplies','fuel','rent','labor','marketing','other'] as $c): ?>
           <option value="<?= $c ?>" <?= ($cat === $c) ? 'selected' : '' ?>><?= ucfirst($c) ?></option>
         <?php endforeach ?>
+        <option value="owner_draw" <?= ($cat === 'owner_draw') ? 'selected' : '' ?>>Owner distribution — not a business cost</option>
       </select>
       <small class="muted" style="font-size:.72rem;">
-        flowers/supplies = COGS &nbsp;|&nbsp; fuel/rent/labor/marketing = overhead
+        flowers/supplies = COGS &nbsp;|&nbsp; fuel/rent/labor/marketing = overhead &nbsp;|&nbsp; owner distribution = money to yourself: off the P&amp;L, shown under Equity
       </small>
     </div>
     <div>
@@ -70,8 +72,8 @@ $needs    = $cat !== 'fuel' && ! $receipts && ! $waived;
   <div style="margin-top:.9rem;padding:.7rem;border:1px dashed #d6c7cf;border-radius:8px;">
     <label for="f_receipts" style="margin-bottom:.2rem;">
       Receipt photo
-      <span id="receipt-req" class="pill" style="<?= $cat === 'fuel' ? 'display:none;' : '' ?>background:#fdf0f0;color:#a12;">required</span>
-      <span id="receipt-opt" class="pill" style="<?= $cat === 'fuel' ? '' : 'display:none;' ?>">not needed for fuel</span>
+      <span id="receipt-req" class="pill" style="<?= $noRcpt ? 'display:none;' : '' ?>background:#fdf0f0;color:#a12;">required</span>
+      <span id="receipt-opt" class="pill" style="<?= $noRcpt ? '' : 'display:none;' ?>">not needed</span>
     </label>
     <input type="file" id="f_receipts" name="receipts[]" accept="image/*" capture="environment" multiple>
     <small class="muted" style="display:block;font-size:.72rem;margin-top:.25rem;">
@@ -160,7 +162,7 @@ $needs    = $cat !== 'fuel' && ! $receipts && ! $waived;
       Marked as no receipt available<?= $expense['receipt_waived_reason'] ? ' — ' . esc($expense['receipt_waived_reason']) : '' ?>.
       Attaching a photo clears this automatically.
     </p>
-  <?php elseif ($cat !== 'fuel' && ! $receipts): ?>
+  <?php elseif (! $noRcpt && ! $receipts): ?>
     <form method="post" action="<?= site_url('admin/expenses/' . $expId . '/receipt-waive') ?>"
           style="margin-top:.8rem;display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;">
       <?= csrf_field() ?>
@@ -181,7 +183,7 @@ $needs    = $cat !== 'fuel' && ! $receipts && ! $waived;
   var opt = document.getElementById('receipt-opt');
   if (!cat || !req || !opt) return;
   cat.addEventListener('change', function () {
-    var fuel = cat.value === 'fuel';
+    var fuel = cat.value === 'fuel' || cat.value === 'owner_draw';
     req.style.display = fuel ? 'none' : '';
     opt.style.display = fuel ? '' : 'none';
   });

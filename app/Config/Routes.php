@@ -98,6 +98,7 @@ $routes->group('admin', ['filter' => 'session', 'namespace' => 'App\Controllers\
     $routes->get('reports',              'Reports::index',       ['as' => 'admin.reports']);
     $routes->get('reports/pnl',          'Reports::pnl',         ['as' => 'admin.reports.pnl']);
     $routes->get('reports/mtd',          'Reports::mtd',         ['as' => 'admin.reports.mtd']);
+    $routes->get('reports/equity',       'Reports::equity',      ['as' => 'admin.reports.equity']);   // #2950
 
     // Users
     $routes->get('users',                'Users::index',         ['as' => 'admin.users']);

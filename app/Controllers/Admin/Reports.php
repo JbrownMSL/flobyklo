@@ -30,7 +30,7 @@ class Reports extends BaseAdmin
         )->getRowArray()['n'] ?? 0);
 
         $ytdExpenses = (float) ($db->query(
-            "SELECT COALESCE(SUM(amount),0) AS n FROM expenses WHERE date >= ? AND date <= ?",
+            "SELECT COALESCE(SUM(amount),0) AS n FROM expenses_pnl WHERE date >= ? AND date <= ?",
             [$ytd, $now]
         )->getRowArray()['n'] ?? 0);
 
@@ -84,7 +84,7 @@ class Reports extends BaseAdmin
 
         $expenseRows = $db->query(
             "SELECT DATE_FORMAT(date,'%Y-%m') AS month, SUM(amount) AS expenses
-               FROM expenses
+               FROM expenses_pnl
               WHERE date >= ? AND date <= ?
               GROUP BY month ORDER BY month",
             [$from, $to]
@@ -93,7 +93,7 @@ class Reports extends BaseAdmin
         // Expense breakdown by category for the period
         $byCategory = $db->query(
             "SELECT category, SUM(amount) AS total
-               FROM expenses
+               FROM expenses_pnl
               WHERE date >= ? AND date <= ?
               GROUP BY category ORDER BY total DESC",
             [$from, $to]
@@ -175,7 +175,7 @@ class Reports extends BaseAdmin
              ) AS rev ON rev.event_id = e.id
              LEFT JOIN (
                  SELECT event_id, SUM(amount) AS cogs
-                   FROM expenses
+                   FROM expenses_pnl
                   WHERE event_id IS NOT NULL
                   GROUP BY event_id
              ) AS exp ON exp.event_id = e.id
@@ -200,13 +200,13 @@ class Reports extends BaseAdmin
             [$mtdStart . ' 00:00:00']
         )->getRowArray()['n'] ?? 0);
         $mtdExpense = (float) ($db->query(
-            "SELECT COALESCE(SUM(amount),0) AS n FROM expenses WHERE date >= ?",
+            "SELECT COALESCE(SUM(amount),0) AS n FROM expenses_pnl WHERE date >= ?",
             [$mtdStart]
         )->getRowArray()['n'] ?? 0);
 
         // Overhead expenses not tied to any event
         $overhead = (float) ($db->query(
-            "SELECT COALESCE(SUM(amount),0) AS n FROM expenses
+            "SELECT COALESCE(SUM(amount),0) AS n FROM expenses_pnl
               WHERE event_id IS NULL AND date >= ? AND date <= ?",
             [$from, $to]
         )->getRowArray()['n'] ?? 0);
@@ -222,6 +222,34 @@ class Reports extends BaseAdmin
             'year'         => $year,
             'years'        => $years,
             'month'        => date('F Y'),
+        ]);
+    }
+
+    /**
+     * #2950 — the EQUITY section. There is no balance sheet in this app (single-entry by design);
+     * inventing assets and liabilities it does not track would be worse than none. What a single-
+     * member LLC needs is owner equity, which IS computable: initial capital (the $500 cash in the
+     * Operating Agreement, Schedule A — a document figure) + net income − owner distributions.
+     */
+    public function equity()
+    {
+        if ($r = $this->guard()) { return $r; }
+        $db = db_connect();
+        $capital = 500.00;
+        $income = (float) ($db->query("SELECT COALESCE(SUM(amount),0) n FROM payments WHERE status='completed'")->getRowArray()['n'] ?? 0)
+                + (float) ($db->query("SELECT COALESCE(SUM(amount),0) n FROM income")->getRowArray()['n'] ?? 0);
+        $expenses = (float) ($db->query("SELECT COALESCE(SUM(amount),0) n FROM expenses_pnl")->getRowArray()['n'] ?? 0);
+        $draws = $db->query("SELECT id, date, vendor, amount, notes FROM expenses WHERE category = 'owner_draw' ORDER BY date")->getResultArray();
+        $drawTotal = array_sum(array_column($draws, 'amount'));
+        return view('admin/reports_equity', [
+            'title'     => 'Owner Equity',
+            'capital'   => $capital,
+            'income'    => $income,
+            'expenses'  => $expenses,
+            'net'       => $income - $expenses,
+            'draws'     => $draws,
+            'drawTotal' => $drawTotal,
+            'equity'    => $capital + ($income - $expenses) - $drawTotal,
         ]);
     }
 }

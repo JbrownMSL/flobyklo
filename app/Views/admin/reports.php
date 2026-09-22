@@ -36,6 +36,7 @@
       </tr>
       <tr>
         <td><a href="<?= site_url('admin/reports/mtd') ?>" class="btn" style="font-size:.82rem;padding:.3rem .8rem;">Event Margins</a></td>
+        <td><a href="<?= site_url('admin/reports/equity') ?>" class="btn" style="font-size:.82rem;padding:.3rem .8rem;">Owner Equity</a></td>
         <td class="muted">Per-event revenue (accepted quote total) minus allocated COGS — with overhead summary.</td>
       </tr>
     </tbody>

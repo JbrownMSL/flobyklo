@@ -32,7 +32,7 @@ class Dashboard extends BaseAdmin
             ->where('status', 'completed')
             ->get()->getRowArray()['amount'] ?? 0);
 
-        $mtdExpenses = (float) ($db->table('expenses')
+        $mtdExpenses = (float) ($db->table('expenses_pnl')   // #2950: owner draws are not an expense
             ->selectSum('amount')
             ->where('date >=', $mtd)
             ->get()->getRowArray()['amount'] ?? 0);
