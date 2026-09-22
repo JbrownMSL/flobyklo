@@ -30,6 +30,7 @@ $routes->group('admin', ['filter' => 'session', 'namespace' => 'App\Controllers\
     $routes->get('clients/(:num)',       'Clients::form/$1',     ['as' => 'admin.clients.edit']);
     $routes->post('clients/save',        'Clients::save',        ['as' => 'admin.clients.save']);
     $routes->post('clients/(:num)/status', 'Clients::setStatus/$1');
+    $routes->get('clients/(:num)/form8300', 'Clients::form8300/$1');
 
     // Events / bookings
     $routes->get('events',               'Events::index',        ['as' => 'admin.events']);

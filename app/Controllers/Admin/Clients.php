@@ -79,6 +79,7 @@ class Clients extends BaseAdmin
         $errors = session()->getFlashdata('errors') ?? [];
 
         return view('admin/clients/form', [
+            'cash8300' => $id ? $this->cashLast12($id) : null,
             'title'   => $client ? 'Edit Client' : 'New Client',
             'client'  => $client,
             'events'  => $events,
@@ -142,5 +143,37 @@ class Clients extends BaseAdmin
         }
 
         return redirect()->back()->with('msg', 'Status updated.');
+    }
+
+    /**
+     * IRS Form 8300 (board #2947, Jason 2026-09-21: "if a client pays me over 10,000 ... a link off to
+     * the side of that client so that I can print"). 8300 is CASH ONLY — currency (and, in some
+     * transactions, cashier's checks / money orders of $10k or less) — and it AGGREGATES related cash
+     * received within 12 months. A card or Square payment never counts, so this sums
+     * payments.method = 'cash' only; flagging every large payment would manufacture filings.
+     */
+    private function cashLast12(int $clientId): array
+    {
+        $rows = db_connect()->query(
+            "SELECT p.id, p.amount, p.paid_at, p.invoice_id
+               FROM payments p JOIN invoices i ON i.id = p.invoice_id
+              WHERE i.client_id = ? AND p.method = 'cash' AND p.status = 'completed'
+                AND p.paid_at >= (NOW() - INTERVAL 12 MONTH)
+              ORDER BY p.paid_at", [$clientId]
+        )->getResultArray();
+        return ['rows' => $rows, 'total' => array_sum(array_column($rows, 'amount'))];
+    }
+
+    /** Printable 8300 worksheet: client + the cash payments, to copy onto the form or e-file. */
+    public function form8300(int $id): \CodeIgniter\HTTP\ResponseInterface|string
+    {
+        if ($r = $this->guard()) {
+            return $r;
+        }
+        $client = db_connect()->table('clients')->where('id', $id)->get()->getRowArray();
+        if (! $client) {
+            return redirect()->to('/admin/clients');
+        }
+        return view('admin/clients/form8300', ['client' => $client, 'cash' => $this->cashLast12($id)]);
     }
 }

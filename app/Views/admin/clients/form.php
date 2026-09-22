@@ -1,5 +1,13 @@
 <?= $this->extend('layout/admin') ?>
 <?= $this->section('content') ?>
+<?php if (! empty($cash8300) && $cash8300['total'] > 10000): ?>
+<div class="flash" style="border-color:#e0b4b4;background:#fdf1f1;color:#6b1d1d;">
+  <strong>IRS Form 8300 likely required</strong> — this client has paid
+  <strong><?= fbk_money($cash8300['total']) ?> in CASH</strong> in the last 12 months (over $10,000).
+  File within 15 days of the payment that crossed $10,000.
+  <a href="<?= site_url('admin/clients/' . (int) $client['id'] . '/form8300') ?>" target="_blank">Open the 8300 worksheet &rarr;</a>
+</div>
+<?php endif ?>
 <?php
 $statusColors = [
     'lead'      => '#2563eb',
