@@ -16,6 +16,7 @@ class ExpenseModel extends Model
 
     protected $allowedFields = [
         'date', 'vendor', 'category', 'amount', 'event_id', 'plaid_txn_id', 'notes',
+        'receipt_waived', 'receipt_waived_reason',   // #2948
     ];
 
     protected $validationRules = [

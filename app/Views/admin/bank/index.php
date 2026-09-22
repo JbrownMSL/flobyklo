@@ -83,6 +83,20 @@
                 + Expense
               </button>
             </form>
+            <!-- #2948 — snap the receipt right here: picking a photo submits at once,
+                 booking the expense from this transaction with the photo attached. -->
+            <form method="post" action="<?= site_url('admin/bank/txn/' . (int) $t['id'] . '/expense-photo') ?>"
+                  enctype="multipart/form-data" style="display:inline;">
+              <?= csrf_field() ?>
+              <input type="file" name="receipt" accept="image/*" capture="environment"
+                     id="rcpt-<?= (int) $t['id'] ?>" style="display:none;"
+                     onchange="if(this.files.length){this.form.submit();}">
+              <button type="button" class="btn ghost" style="font-size:.78rem;padding:.2rem .55rem;"
+                      title="Take a photo of the receipt and book this as an expense"
+                      onclick="document.getElementById('rcpt-<?= (int) $t['id'] ?>').click();">
+                📷 Receipt
+              </button>
+            </form>
             <form method="post" action="<?= site_url('admin/bank/txn/' . (int) $t['id'] . '/income') ?>" style="display:inline;">
               <?= csrf_field() ?>
               <button type="submit" class="btn ghost" style="font-size:.78rem;padding:.2rem .55rem;">

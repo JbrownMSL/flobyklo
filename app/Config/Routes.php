@@ -72,6 +72,13 @@ $routes->group('admin', ['filter' => 'session', 'namespace' => 'App\Controllers\
     $routes->get('expenses/(:num)',      'Expenses::form/$1',    ['as' => 'admin.expenses.edit']);
     $routes->post('expenses/save',       'Expenses::save',       ['as' => 'admin.expenses.save']);
 
+    // #2948 receipt photos (stored outside the webroot; served only through Receipts)
+    $routes->post('expenses/(:num)/receipts',      'Receipts::upload/$1');
+    $routes->post('expenses/(:num)/receipt-waive', 'Receipts::waive/$1');
+    $routes->get('receipts/(:num)',                'Receipts::show/$1');
+    $routes->get('receipts/(:num)/thumb',          'Receipts::thumb/$1');
+    $routes->post('receipts/(:num)/delete',        'Receipts::delete/$1');
+
     // Plaid bank
     $routes->get('bank',                 'Bank::index',          ['as' => 'admin.bank']);
     $routes->post('bank/link',           'Bank::linkToken');
@@ -79,6 +86,7 @@ $routes->group('admin', ['filter' => 'session', 'namespace' => 'App\Controllers\
     $routes->post('bank/sync',           'Bank::sync');
     $routes->post('bank/txn/(:num)/expense', 'Bank::toExpense/$1');
     $routes->post('bank/txn/(:num)/income',  'Bank::toIncome/$1');
+    $routes->post('bank/txn/(:num)/expense-photo', 'Bank::toExpenseWithPhoto/$1');
 
     // Income (#2946) — money in that is not an invoice payment
     $routes->get('income',               'Income::index',        ['as' => 'admin.income']);

@@ -5,6 +5,15 @@
   <a class="btn" href="<?= site_url('admin/expenses/new') ?>">+ Add Expense</a>
 </div>
 
+<?php if ($missingCount > 0): ?>
+<div class="flash" style="border-color:#f3c6c6;background:#fdf0f0;color:#a12;">
+  <strong><?= (int) $missingCount ?></strong> expense<?= $missingCount === 1 ? '' : 's' ?>
+  still need<?= $missingCount === 1 ? 's' : '' ?> a receipt photo.
+  <a href="<?= site_url('admin/expenses?receipt=missing') ?>">Show them</a>
+  <span class="muted">(fuel never needs one)</span>
+</div>
+<?php endif ?>
+
 <div class="card" style="padding:.7rem 1rem;">
   <form method="get" style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;">
     <div>
@@ -14,6 +23,14 @@
         <?php foreach (['flowers','supplies','fuel','rent','labor','marketing','other'] as $c): ?>
           <option value="<?= $c ?>" <?= ($filters['cat'] === $c) ? 'selected' : '' ?>><?= ucfirst($c) ?></option>
         <?php endforeach ?>
+      </select>
+    </div>
+    <div>
+      <label>Receipt</label>
+      <select name="receipt" style="width:auto;">
+        <option value="">Any</option>
+        <option value="missing"  <?= ($filters['rcpt'] === 'missing')  ? 'selected' : '' ?>>Missing (needs photo)</option>
+        <option value="attached" <?= ($filters['rcpt'] === 'attached') ? 'selected' : '' ?>>Attached</option>
       </select>
     </div>
     <div>
@@ -54,6 +71,7 @@
         <th>Vendor</th>
         <th>Category</th>
         <th style="text-align:right;">Amount</th>
+        <th>Receipt</th>
         <th>Event (COGS)</th>
         <th>Source</th>
         <th></th>
@@ -66,6 +84,25 @@
         <td><?= esc($e['vendor'] ?: '—') ?></td>
         <td><span class="pill"><?= esc($e['category']) ?></span></td>
         <td style="text-align:right;"><?= fbk_money($e['amount']) ?></td>
+        <td>
+          <?php $rc = (int) ($e['receipt_count'] ?? 0); ?>
+          <?php if ($rc > 0): ?>
+            <a href="<?= site_url('admin/receipts/' . (int) $e['receipt_id']) ?>" target="_blank" rel="noopener"
+               title="<?= $rc ?> photo<?= $rc === 1 ? '' : 's' ?>">
+              <img src="<?= site_url('admin/receipts/' . (int) $e['receipt_id'] . '/thumb') ?>"
+                   alt="Receipt" loading="lazy"
+                   style="width:34px;height:34px;object-fit:cover;border-radius:4px;vertical-align:middle;background:#f6f2f4;">
+            </a>
+            <?php if ($rc > 1): ?><span class="muted" style="font-size:.75rem;">×<?= $rc ?></span><?php endif ?>
+          <?php elseif ($e['category'] === 'fuel'): ?>
+            <span class="muted" style="font-size:.78rem;">not needed</span>
+          <?php elseif (! empty($e['receipt_waived'])): ?>
+            <span class="pill" title="<?= esc($e['receipt_waived_reason'] ?: '') ?>">waived</span>
+          <?php else: ?>
+            <a class="pill" style="background:#fdf0f0;color:#a12;text-decoration:none;"
+               href="<?= site_url('admin/expenses/' . (int) $e['id']) ?>">no receipt</a>
+          <?php endif ?>
+        </td>
         <td>
           <?php if ($e['event_id']): ?>
             <a href="<?= site_url('admin/events/' . (int) $e['event_id']) ?>">
@@ -87,7 +124,7 @@
       </tr>
     <?php endforeach ?>
     <?php if (! $expenses): ?>
-      <tr><td colspan="7" class="muted" style="padding:.8rem .6rem;">No expenses recorded yet.</td></tr>
+      <tr><td colspan="8" class="muted" style="padding:.8rem .6rem;">No expenses recorded yet.</td></tr>
     <?php endif ?>
     </tbody>
   </table>

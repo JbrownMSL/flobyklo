@@ -162,4 +162,61 @@ class Bank extends BaseAdmin
         if ($r = $this->guard()) { return $r; }
         return redirect()->to('/admin/income/new?plaid_txn_id=' . (int) $txnId);
     }
+
+    /**
+     * POST /admin/bank/txn/(:num)/expense-photo — #2948 one-tap: snap the receipt on
+     * the bank row and get a booked expense with the photo already on it.
+     *
+     * The plain "+ Expense" button only pre-fills the form, so a photo chosen there
+     * would be lost on the redirect. This books the expense from the transaction
+     * immediately, attaches the photo, and lands on the edit form for category/event
+     * — so the receipt is captured at the moment she is looking at the charge.
+     */
+    public function toExpenseWithPhoto(int $txnId)
+    {
+        if ($r = $this->guard()) { return $r; }
+
+        $file = $this->request->getFile('receipt');
+        if (! $file || $file->getError() === UPLOAD_ERR_NO_FILE) {
+            // No photo picked — behave exactly like the plain button.
+            return redirect()->to('/admin/expenses/new?plaid_txn_id=' . $txnId);
+        }
+
+        $db  = db_connect();
+        $txn = $db->table('plaid_transactions')->where('id', $txnId)->get()->getRowArray();
+        if (! $txn) {
+            return redirect()->to('/admin/bank')->with('error', 'Transaction not found.');
+        }
+
+        // Don't book the same transaction twice — reuse the expense if one exists.
+        $existing = $db->table('expenses')->where('plaid_txn_id', $txnId)->get()->getRowArray();
+        if ($existing) {
+            $expenseId = (int) $existing['id'];
+        } else {
+            $db->table('expenses')->insert([
+                'date'         => $txn['date'],
+                'vendor'       => $txn['name'],
+                'category'     => 'other',
+                'amount'       => abs((float) $txn['amount']),
+                'plaid_txn_id' => $txnId,
+                'notes'        => '',
+                'created_at'   => date('Y-m-d H:i:s'),
+            ]);
+            $expenseId = (int) $db->insertID();
+        }
+
+        $store = new \App\Libraries\ReceiptStore();
+        $row   = $store->store($file, $expenseId);
+
+        $to = redirect()->to('/admin/expenses/' . $expenseId);
+        if (is_string($row)) {
+            // The expense is booked either way — losing the photo must not lose the entry.
+            return $to->with('error', $row)
+                      ->with('msg', 'Expense booked from the bank transaction, but the photo did not save.');
+        }
+
+        $db->table('expense_receipts')->insert($row);
+
+        return $to->with('msg', 'Expense booked from the bank transaction with its receipt photo. Set the category below.');
+    }
 }
