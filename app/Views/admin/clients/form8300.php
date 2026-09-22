@@ -23,7 +23,7 @@
 <table>
  <tr><th>Date</th><th>Invoice</th><th style="text-align:right">Amount</th></tr>
  <?php foreach ($cash['rows'] as $r): ?>
- <tr><td><?= esc(substr((string) $r['paid_at'], 0, 10)) ?></td><td>#<?= (int) $r['invoice_id'] ?></td><td style="text-align:right"><?= fbk_money($r['amount']) ?></td></tr>
+ <tr><td><?= esc(substr((string) $r['paid_at'], 0, 10)) ?></td><td><?= $r['invoice_id'] ? '#' . (int) $r['invoice_id'] : 'Income entry' ?></td><td style="text-align:right"><?= fbk_money($r['amount']) ?></td></tr>
  <?php endforeach ?>
  <tr><th colspan="2">Total cash</th><th style="text-align:right"><?= fbk_money($cash['total']) ?></th></tr>
 </table>

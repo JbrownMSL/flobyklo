@@ -46,7 +46,7 @@ class Income extends BaseAdmin
                     // #2949: a TRANSFER_IN (moving her own money between accounts) is not sales.
                     'category' => str_starts_with(strtoupper((string) $plaidTxn['category']), 'TRANSFER_IN') ? 'other' : 'sales',
                     'amount' => abs((float) $plaidTxn['amount']),
-                    'client_id' => null, 'event_id' => null, 'plaid_txn_id' => $plaidTxn['id'], 'notes' => '',
+                    'method' => 'transfer', 'client_id' => null, 'event_id' => null, 'plaid_txn_id' => $plaidTxn['id'], 'notes' => '',
                 ];
             }
         }
@@ -77,6 +77,8 @@ class Income extends BaseAdmin
             'payer'        => trim((string) $this->request->getPost('payer')),
             'category'     => $this->request->getPost('category'),
             'amount'       => (float) $this->request->getPost('amount'),
+            'method'       => in_array($this->request->getPost('method'), ['cash', 'check', 'card', 'transfer', 'other'], true)
+                                ? $this->request->getPost('method') : 'other',
             'client_id'    => (int) $this->request->getPost('client_id') ?: null,
             'event_id'     => (int) $this->request->getPost('event_id') ?: null,
             'plaid_txn_id' => (int) $this->request->getPost('plaid_txn_id') ?: null,

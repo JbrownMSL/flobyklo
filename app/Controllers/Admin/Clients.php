@@ -154,12 +154,19 @@ class Clients extends BaseAdmin
      */
     private function cashLast12(int $clientId): array
     {
+        // Invoice payments marked cash PLUS cash booked on the Income page for this client.
         $rows = db_connect()->query(
-            "SELECT p.id, p.amount, p.paid_at, p.invoice_id
-               FROM payments p JOIN invoices i ON i.id = p.invoice_id
-              WHERE i.client_id = ? AND p.method = 'cash' AND p.status = 'completed'
-                AND p.paid_at >= (NOW() - INTERVAL 12 MONTH)
-              ORDER BY p.paid_at", [$clientId]
+            "SELECT * FROM (
+                SELECT p.id, p.amount, p.paid_at, p.invoice_id
+                  FROM payments p JOIN invoices i ON i.id = p.invoice_id
+                 WHERE i.client_id = ? AND p.method = 'cash' AND p.status = 'completed'
+                   AND p.paid_at >= (NOW() - INTERVAL 12 MONTH)
+                UNION ALL
+                SELECT n.id, n.amount, CAST(n.date AS DATETIME) AS paid_at, NULL AS invoice_id
+                  FROM income n
+                 WHERE n.client_id = ? AND n.method = 'cash'
+                   AND n.date >= (CURDATE() - INTERVAL 12 MONTH)
+             ) u ORDER BY paid_at", [$clientId, $clientId]
         )->getResultArray();
         return ['rows' => $rows, 'total' => array_sum(array_column($rows, 'amount'))];
     }

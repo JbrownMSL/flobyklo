@@ -45,6 +45,17 @@
     </div>
   </div>
 
+  <div style="margin-top:.7rem;">
+    <label for="f_method">Received as *</label>
+    <select id="f_method" name="method" required>
+      <?php $selM = old('method', $row['method'] ?? 'other');
+      foreach (['cash' => 'Cash', 'check' => 'Check', 'card' => 'Card / Square', 'transfer' => 'Bank transfer / Venmo / Zelle', 'other' => 'Other'] as $k => $lab): ?>
+        <option value="<?= $k ?>" <?= $selM === $k ? 'selected' : '' ?>><?= $lab ?></option>
+      <?php endforeach ?>
+    </select>
+    <small class="muted" style="font-size:.72rem;">Cash from one client over $10,000 in 12 months needs IRS Form 8300 — pick the client too.</small>
+  </div>
+
   <div class="row" style="margin-top:.7rem;">
     <div>
       <label for="f_client">Client (optional)</label>
