@@ -77,6 +77,10 @@
             <?php endif ?>
           </td>
           <td>
+            <?php // Jason 2026-09-21 (#2946): ONE button per row. Plaid's sign is inverted from intuition:
+                  // amount < 0 is money IN (the CR tag) -> + Income only; otherwise -> + Expense only.
+                  $isDebit = $t['amount'] >= 0; ?>
+            <?php if ($isDebit): ?>
             <form method="post" action="<?= site_url('admin/bank/txn/' . (int) $t['id'] . '/expense') ?>" style="display:inline;">
               <?= csrf_field() ?>
               <button type="submit" class="btn ghost" style="font-size:.78rem;padding:.2rem .55rem;">
@@ -97,12 +101,14 @@
                 📷 Receipt
               </button>
             </form>
+            <?php else: ?>
             <form method="post" action="<?= site_url('admin/bank/txn/' . (int) $t['id'] . '/income') ?>" style="display:inline;">
               <?= csrf_field() ?>
               <button type="submit" class="btn ghost" style="font-size:.78rem;padding:.2rem .55rem;">
                 + Income
               </button>
             </form>
+            <?php endif ?>
           </td>
         </tr>
         <?php endforeach ?>

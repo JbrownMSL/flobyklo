@@ -8,7 +8,7 @@ namespace App\Controllers\Admin;
  */
 class Income extends BaseAdmin
 {
-    private const CATEGORIES = ['sales', 'deposit', 'pop-up', 'refund', 'other'];
+    private const CATEGORIES = ['sales', 'market', 'deposit', 'pop-up', 'refund', 'other'];
 
     public function index()
     {
@@ -43,8 +43,7 @@ class Income extends BaseAdmin
             if ($plaidTxn) {
                 $row = [
                     'id' => null, 'date' => $plaidTxn['date'], 'payer' => $plaidTxn['name'],
-                    // #2949: a TRANSFER_IN (moving her own money between accounts) is not sales.
-                    'category' => str_starts_with(strtoupper((string) $plaidTxn['category']), 'TRANSFER_IN') ? 'other' : 'sales',
+                    'category' => $this->suggestCategory($db, $plaidTxn),
                     'amount' => abs((float) $plaidTxn['amount']),
                     'method' => 'transfer', 'client_id' => null, 'event_id' => null, 'plaid_txn_id' => $plaidTxn['id'], 'notes' => '',
                 ];
@@ -59,6 +58,24 @@ class Income extends BaseAdmin
             'clients'    => $db->table('clients')->select('id, name')->orderBy('name')->get()->getResultArray(),
             'events'     => $db->table('events')->select('id, event_date, venue, type')->orderBy('event_date', 'DESC')->get()->getResultArray(),
         ]);
+    }
+
+    /**
+     * #2949 (Jason 2026-09-21): "if you import several Venmo incomes all in the same day, tag them as
+     * income from market." A SUGGESTION only — she can change it (two wedding instalments on one day
+     * would trip the same test). Venmo wins over Plaid's label: Plaid tags every Venmo row
+     * TRANSFER_*_ACCOUNT_TRANSFER, so treating transfers as 'other' would hide her market revenue.
+     * Credits and debits are counted separately (a same-day -150/+150 Venmo wash is not a market).
+     */
+    private function suggestCategory($db, array $txn): string
+    {
+        if (stripos((string) $txn['name'], 'venmo') !== false) {
+            $sameDay = $db->table('plaid_transactions')->where('date', $txn['date'])
+                ->like('name', 'venmo', 'both', null, true)->where('amount <', 0)->countAllResults();
+            return $sameDay >= 2 ? 'market' : 'sales';
+        }
+        // A plain account-to-account move of her own money is not sales.
+        return str_starts_with(strtoupper((string) $txn['category']), 'TRANSFER_IN') ? 'other' : 'sales';
     }
 
     public function save()
