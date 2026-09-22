@@ -6,7 +6,7 @@
 <div class="flash" style="border-color:#bfd4e3;background:#f0f6fa;color:#1e3a52;">
   Pre-filled from Plaid transaction: <strong><?= esc($plaidTxn['name']) ?></strong>
   (<?= esc($plaidTxn['date']) ?>, <?= fbk_money(abs((float) $plaidTxn['amount'])) ?>)
-  — review category and event below before saving.
+  — category pre-picked from the bank's own label (<em><?= esc(strtolower(str_replace('_', ' ', (string) $plaidTxn['category']))) ?></em>); review it and the event before saving.
 </div>
 <?php endif ?>
 

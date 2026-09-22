@@ -87,7 +87,7 @@ class Expenses extends BaseAdmin
                     'id'           => null,
                     'date'         => $plaidTxn['date'],
                     'vendor'       => $plaidTxn['name'],
-                    'category'     => 'other',
+                    'category'     => self::guessCategory((string) $plaidTxn['category'], (string) $plaidTxn['name']),
                     'amount'       => abs((float) $plaidTxn['amount']),
                     'event_id'     => null,
                     'plaid_txn_id' => $plaidTxn['id'],
@@ -189,5 +189,23 @@ class Expenses extends BaseAdmin
         $to = $to->with('msg', $msg . ($stillMissing ? ' This one still needs a receipt photo.' : ''));
         if ($receiptError) { $to = $to->with('error', $receiptError); }
         return $to;
+    }
+
+    /**
+     * #2949 cheap win: Plaid already sends personal_finance_category (detailed, e.g.
+     * GENERAL_MERCHANDISE_ONLINE_MARKETPLACES) and Bank::sync stores it in plaid_transactions.category,
+     * but nothing read it. Map it to her 7 categories so the pre-filled form starts on a sensible one.
+     * A vendor that looks like a flower wholesaler wins over the Plaid guess (Plaid files wholesalers
+     * under general merchandise). Only a suggestion — she can change it before saving.
+     */
+    public static function guessCategory(string $plaidCat, string $vendor): string
+    {
+        if (preg_match('/flor|flower|bloom|wholesale|dutch|mayesh|stem|petal|greenhouse|nursery/i', $vendor)) { return 'flowers'; }
+        $c = strtoupper($plaidCat);
+        if (str_starts_with($c, 'TRANSPORTATION_GAS'))       { return 'fuel'; }
+        if (str_starts_with($c, 'RENT_AND_UTILITIES'))       { return 'rent'; }
+        if (str_contains($c, 'ADVERTISING') || str_contains($c, 'MARKETING')) { return 'marketing'; }
+        if (str_starts_with($c, 'GENERAL_MERCHANDISE') || str_starts_with($c, 'HOME_IMPROVEMENT')) { return 'supplies'; }
+        return 'other';
     }
 }

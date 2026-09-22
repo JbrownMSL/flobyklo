@@ -43,7 +43,9 @@ class Income extends BaseAdmin
             if ($plaidTxn) {
                 $row = [
                     'id' => null, 'date' => $plaidTxn['date'], 'payer' => $plaidTxn['name'],
-                    'category' => 'sales', 'amount' => abs((float) $plaidTxn['amount']),
+                    // #2949: a TRANSFER_IN (moving her own money between accounts) is not sales.
+                    'category' => str_starts_with(strtoupper((string) $plaidTxn['category']), 'TRANSFER_IN') ? 'other' : 'sales',
+                    'amount' => abs((float) $plaidTxn['amount']),
                     'client_id' => null, 'event_id' => null, 'plaid_txn_id' => $plaidTxn['id'], 'notes' => '',
                 ];
             }
